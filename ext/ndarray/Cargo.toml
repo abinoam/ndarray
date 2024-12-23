@@ -1,0 +1,13 @@
+[package]
+name = "ndarray"
+version = "0.1.0"
+edition = "2021"
+authors = ["Abinoam Praxedes Marques Jr. <abinoam@gmail.com>"]
+license = "MIT"
+publish = false
+
+[lib]
+crate-type = ["cdylib"]
+
+[dependencies]
+magnus = { version = "0.6.2" }
