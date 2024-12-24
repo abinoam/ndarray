@@ -4,7 +4,7 @@ require_relative "lib/ndarray/version"
 
 Gem::Specification.new do |spec|
   spec.name = "ndarray"
-  spec.version = Ndarray::VERSION
+  spec.version = NDArray::VERSION
   spec.authors = ["Abinoam Praxedes Marques Jr."]
   spec.email = ["abinoam@gmail.com"]
 
