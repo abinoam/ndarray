@@ -1,7 +1,7 @@
 # frozen_string_literal: true
 
 require_relative "ndarray/version"
-require_relative "ndarray/ndarray"
+require_relative "ndarray/ruby_ndarray_rust_ext"
 
 module NDArray
   class Error < StandardError; end

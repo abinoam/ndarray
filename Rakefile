@@ -13,7 +13,7 @@ task build: :compile
 
 GEMSPEC = Gem::Specification.load("ndarray.gemspec")
 
-RbSys::ExtensionTask.new("ndarray", GEMSPEC) do |ext|
+RbSys::ExtensionTask.new("ruby_ndarray_rust_ext", GEMSPEC) do |ext|
   ext.lib_dir = "lib/ndarray"
 end
 

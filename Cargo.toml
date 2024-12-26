@@ -3,5 +3,5 @@
 # in the ext/ directory.
 
 [workspace]
-members = ["./ext/ndarray"]
+members = ["./ext/ruby_ndarray_rust_ext"]
 resolver = "2"

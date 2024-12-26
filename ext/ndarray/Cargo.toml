@@ -1,5 +1,5 @@
 [package]
-name = "ndarray"
+name = "ruby_ndarray_rust_ext"
 version = "0.1.0"
 edition = "2021"
 authors = ["Abinoam Praxedes Marques Jr. <abinoam@gmail.com>"]
