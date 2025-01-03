@@ -6,7 +6,7 @@ RSpec.describe NDArray do
   end
 
   describe "Checking Rust <=> Ruby communication" do
-    describe %q{ #hello "João" } do
+    describe '#hello "João"' do
       it { expect(described_class.hello("João")).to eq("Hello from Rust, João!") }
     end
   end
