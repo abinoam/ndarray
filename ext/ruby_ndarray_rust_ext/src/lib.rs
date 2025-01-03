@@ -6,7 +6,7 @@ fn hello(subject: String) -> String {
 
 #[magnus::init]
 fn init(ruby: &Ruby) -> Result<(), Error> {
-    let module = ruby.define_module("NDArray")?;
-    module.define_singleton_method("hello", function!(hello, 1))?;
+    let ndarray_rb_class = ruby.define_class("NDArray", ruby.class_object())?;
+    ndarray_rb_class.define_singleton_method("hello", function!(hello, 1))?;
     Ok(())
 }
