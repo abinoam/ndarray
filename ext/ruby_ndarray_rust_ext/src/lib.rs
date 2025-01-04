@@ -21,6 +21,11 @@ impl NDArray {
         Ok(Self { data: ndarray })
     }
 
+    fn dot(_ruby: &Ruby, rb_self: &Self, other: &NDArray) -> Result<Self, Error> {
+        let result = rb_self.data.dot(&other.data);
+        Ok(Self { data: result })
+    }
+
     fn to_a(_ruby: &Ruby, rb_self: &Self) -> Vec<Vec<f64>> {
         // Iterate over the rows and collect each row into a Vec<f64>
         rb_self.data.outer_iter().map(|row| row.to_vec()).collect()
@@ -35,6 +40,9 @@ fn init(ruby: &Ruby) -> Result<(), Error> {
 
     // Define the `from_array` class method that creates a new `NDArray` instance
     class.define_singleton_method("from_array", function!(NDArray::from_array, 1))?;
+
+    // Define the `dot` instance method
+    class.define_method("dot", method!(NDArray::dot, 1))?;
 
     // Define the `to_a` instance method that returns the 2D array as a Vec<Vec<f64>>
     class.define_method("to_a", method!(NDArray::to_a, 0))?;
