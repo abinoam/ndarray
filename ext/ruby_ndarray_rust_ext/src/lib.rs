@@ -9,7 +9,7 @@ struct NDArray {
 impl NDArray {
     fn from_array(array: Vec<Vec<f64>>) -> Result<Self, Error> {
         let rows = array.len();
-        let cols = array.get(0).map_or(0, |row| row.len());
+        let cols = array.first().map_or(0, |row| row.len());
 
         // Flatten the Vec<Vec<f64>> into a single Vec<f64>
         let flattened: Vec<f64> = array.into_iter().flatten().collect();
