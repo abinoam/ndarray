@@ -5,7 +5,9 @@ RSpec.describe NDArray do
     expect(NDArray::VERSION).not_to be nil
   end
 
-  it "does something useful" do
-    expect(false).to eq(true)
+  describe "Checking Rust <=> Ruby communication" do
+    describe %q{ #hello "João" } do
+      it { expect(described_class.hello("João")).to eq("Hello from Rust, João!") }
+    end
   end
 end
