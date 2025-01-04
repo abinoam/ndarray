@@ -31,5 +31,17 @@ RSpec.describe NDArray do
         it { expect(ndarray1.dot(ndarray2).to_a).to eq([[19.0, 22.0], [43.0, 50.0]]) }
       end
     end
+
+    describe "with incompatible dimensions" do
+      let(:rb_array1) { [[1.0, 2.0], [3.0, 4.0]] } # 2x2 matrix
+      let(:rb_array2) { [[1.0, 2.0]] } # 1x2 matrix
+
+      let(:ndarray1) { described_class.from_array(rb_array1) }
+      let(:ndarray2) { described_class.from_array(rb_array2) }
+
+      it "raises an ArgumentError with a descriptive message" do
+        expect { ndarray1.dot(ndarray2) }.to raise_error(ArgumentError)
+      end
+    end
   end
 end

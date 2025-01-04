@@ -22,6 +22,13 @@ impl NDArray {
     }
 
     fn dot(_ruby: &Ruby, rb_self: &Self, other: &NDArray) -> Result<Self, Error> {
+        // Check if the dimensions are compatible for the dot product
+        if rb_self.data.ncols() != other.data.nrows() {
+            return Err(Error::new(
+                exception::arg_error(),
+                "Incompatible dimensions for dot product: number of columns in the first matrix must equal the number of rows in the second matrix",
+            ));
+        }
         let result = rb_self.data.dot(&other.data);
         Ok(Self { data: result })
     }
