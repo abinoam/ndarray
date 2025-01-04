@@ -5,9 +5,13 @@ RSpec.describe NDArray do
     expect(NDArray::VERSION).not_to be nil
   end
 
-  describe "Checking Rust <=> Ruby communication" do
-    describe '#hello "João"' do
-      it { expect(described_class.hello("João")).to eq("Hello from Rust, João!") }
+  describe "#from_array([[1.0, 2.0], [3.0, 4.0]])" do
+    let(:rb_array) { [[1.0, 2.0], [3.0, 4.0]] }
+
+    it { expect(described_class.from_array(rb_array)).to be_a(NDArray) }
+
+    describe "can be converted back to Ruby array with #to_a" do
+      it { expect(described_class.from_array(rb_array).to_a).to eq(rb_array) }
     end
   end
 end
