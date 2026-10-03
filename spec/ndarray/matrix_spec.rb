@@ -57,6 +57,26 @@ RSpec.describe NDArray::Matrix do
     end
   end
 
+  describe ".empty" do
+    it "builds a 0x0 matrix by default" do
+      expect(described_class.empty.to_a).to eq([])
+    end
+
+    it "builds matrices with one zero dimension" do
+      expect(described_class.empty(2, 0).to_a).to eq([[], []])
+      expect(described_class.empty(0, 3).column_count).to eq(3)
+      expect(described_class.empty(0, 3).to_a).to eq([])
+    end
+
+    it "requires one size to be 0" do
+      expect { described_class.empty(2, 3) }.to raise_error(ArgumentError, "One size must be 0")
+    end
+
+    it "rejects negative sizes" do
+      expect { described_class.empty(-1, 0) }.to raise_error(ArgumentError, "Negative size")
+    end
+  end
+
   describe "#row_count and #column_count" do
     let(:matrix) { described_class[[1, 2, 3], [4, 5, 6]] }
 

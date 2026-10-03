@@ -1,6 +1,6 @@
 use magnus::{
     DataTypeFunctions, Error, Float, Integer, IntoValue, RArray, Ruby, TypedData, Value, function,
-    gc, method, prelude::*, value::Opaque,
+    gc, method, prelude::*, scan_args::scan_args, value::Opaque,
 };
 use ndarray::Array2;
 
@@ -97,6 +97,25 @@ impl Matrix {
         Ok(Self { storage })
     }
 
+    // Matrix.empty(row_count = 0, column_count = 0)
+    fn empty(ruby: &Ruby, args: &[Value]) -> Result<Self, Error> {
+        let args = scan_args::<(), (Option<i64>, Option<i64>), (), (), (), ()>(args)?;
+        let (row_count, column_count) = args.optional;
+        let (row_count, column_count) = (row_count.unwrap_or(0), column_count.unwrap_or(0));
+
+        if row_count != 0 && column_count != 0 {
+            return Err(Error::new(ruby.exception_arg_error(), "One size must be 0"));
+        }
+        if row_count < 0 || column_count < 0 {
+            return Err(Error::new(ruby.exception_arg_error(), "Negative size"));
+        }
+
+        let shape = (row_count as usize, column_count as usize);
+        Ok(Self {
+            storage: Storage::Int(build_array(shape, Vec::new())),
+        })
+    }
+
     fn row_count(&self) -> usize {
         self.storage.dim().0
     }
@@ -120,6 +139,7 @@ pub fn init(ruby: &Ruby) -> Result<(), Error> {
     let class = namespace.define_class("Matrix", ruby.class_object())?;
 
     class.define_singleton_method("[]", function!(Matrix::from_rows, -1))?;
+    class.define_singleton_method("empty", function!(Matrix::empty, -1))?;
 
     class.define_method("row_count", method!(Matrix::row_count, 0))?;
     class.define_alias("row_size", "row_count")?;
