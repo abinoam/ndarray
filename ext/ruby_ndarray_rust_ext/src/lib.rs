@@ -1,4 +1,4 @@
-use magnus::{function, method, prelude::*, Error, Ruby};
+use magnus::{Error, Ruby, function, method, prelude::*};
 use ndarray::Array2;
 
 #[magnus::wrap(class = "NDArray")]
