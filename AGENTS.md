@@ -20,6 +20,17 @@ cargo clippy                   # Rust lint (workspace root Cargo.toml points at 
 bin/console                    # IRB with the gem loaded
 ```
 
+### Build output and checks
+
+- Compiling the extension is very noisy (bindgen dumps thousands of `cargo:` lines). Redirect the output to a log file outside the repo and grep it instead of reading it whole:
+  ```bash
+  bundle exec rake > /tmp/rake.log 2>&1; echo exit=$?
+  grep -E 'examples,|offenses|^error|^warning: ' /tmp/rake.log
+  ```
+  On a failure the real cause is near the end of the log: look for `--- stderr`, `error[E`, `panicked`, or messages such as `Stable API is needed`.
+- Lint Ruby through `bundle exec rake standard`. Running `standardrb` directly also scans `target/` and reports its binaries as unprocessable.
+- `cargo clippy` may report `Finished` straight from cache. Run `touch ext/ruby_ndarray_rust_ext/src/lib.rs` first to force a real check.
+
 ## Architecture
 
 - **All behavior lives in Rust**: `ext/ruby_ndarray_rust_ext/src/lib.rs`. The `NDArray` Ruby class is defined there via `#[magnus::wrap(class = "NDArray")]` wrapping an `Array2<f64>`, and methods are registered in the `#[magnus::init]` function (`from_array` singleton, `dot`, `to_a`). Adding a Ruby method means implementing it on the Rust struct and registering it in `init`.
@@ -32,6 +43,8 @@ bin/console                    # IRB with the gem loaded
 ## Workflow
 
 Never commit directly to `master`. Do all work on a separate branch, push it, and open a pull request; changes reach `master` only by merging that PR.
+
+For dependency/toolchain upgrades (Bundler, gems, magnus/rb-sys/ndarray, Rust edition, minimum Ruby, CI matrix), follow `.claude/skills/update-dependencies/SKILL.md`: one atomic commit per upgrade step.
 
 ## Commits
 
