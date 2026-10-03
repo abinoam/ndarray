@@ -1,0 +1,5 @@
+# Upstream ruby/matrix tests (test/upstream/matrix) that NDArray::Matrix passes.
+# `rake compat` runs exactly these and fails if any of them regresses.
+# Add a test here in the same commit that makes it pass; `rake compat:report`
+# lists the ones that pass but are not listed yet.
+# Format: TestClass#test_method, one per line.
