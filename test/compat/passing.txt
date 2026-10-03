@@ -3,3 +3,4 @@
 # Add a test here in the same commit that makes it pass; `rake compat:report`
 # lists the ones that pass but are not listed yet.
 # Format: TestClass#test_method, one per line.
+TestMatrix#test_identity

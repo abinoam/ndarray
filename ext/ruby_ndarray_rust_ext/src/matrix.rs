@@ -1,3 +1,5 @@
+use std::cell::RefCell;
+
 use magnus::{
     DataTypeFunctions, Error, Float, Integer, IntoValue, RArray, Ruby, TypedData, Value, function,
     gc, method, prelude::*, scan_args::scan_args, value::Opaque,
@@ -7,6 +9,7 @@ use ndarray::Array2;
 // Elements are kept in the narrowest Rust type able to represent all of them
 // exactly, so Ruby semantics (Integer vs Float) are preserved. Anything else
 // (Rational, Complex, Bignum, mixed types...) falls back to Ruby objects.
+#[derive(Clone)]
 enum Storage {
     Int(Array2<i64>),
     Float(Array2<f64>),
@@ -56,16 +59,32 @@ fn rows_to_ruby<T: IntoValue + Copy>(ruby: &Ruby, array: &Array2<T>) -> Result<R
     Ok(rows)
 }
 
-#[derive(TypedData)]
+impl Default for Storage {
+    fn default() -> Self {
+        Self::Int(Array2::zeros((0, 0)))
+    }
+}
+
+// The storage sits in a RefCell because Ruby allocates objects before
+// initializing them (e.g. #clone and #dup call #initialize_copy).
+#[derive(Default, TypedData)]
 #[magnus(class = "NDArray::Matrix", free_immediately, mark)]
 pub struct Matrix {
-    storage: Storage,
+    storage: RefCell<Storage>,
+}
+
+impl Matrix {
+    fn new(storage: Storage) -> Self {
+        Self {
+            storage: RefCell::new(storage),
+        }
+    }
 }
 
 impl DataTypeFunctions for Matrix {
     // Keep the Ruby objects held by the Object storage alive.
     fn mark(&self, marker: &gc::Marker) {
-        if let Storage::Object(a) = &self.storage {
+        if let Storage::Object(a) = &*self.storage.borrow() {
             a.iter().for_each(|&value| marker.mark(value));
         }
     }
@@ -94,7 +113,7 @@ impl Matrix {
         }
 
         let storage = Storage::from_values((row_count, column_count), values);
-        Ok(Self { storage })
+        Ok(Self::new(storage))
     }
 
     // Matrix.empty(row_count = 0, column_count = 0)
@@ -111,21 +130,25 @@ impl Matrix {
         }
 
         let shape = (row_count as usize, column_count as usize);
-        Ok(Self {
-            storage: Storage::Int(build_array(shape, Vec::new())),
-        })
+        Ok(Self::new(Storage::Int(build_array(shape, Vec::new()))))
     }
 
     fn row_count(&self) -> usize {
-        self.storage.dim().0
+        self.storage.borrow().dim().0
     }
 
     fn column_count(&self) -> usize {
-        self.storage.dim().1
+        self.storage.borrow().dim().1
+    }
+
+    // Called by #clone and #dup on a freshly allocated copy
+    fn initialize_copy(&self, original: &Self) {
+        let storage = original.storage.borrow().clone();
+        *self.storage.borrow_mut() = storage;
     }
 
     fn to_a(ruby: &Ruby, rb_self: &Self) -> Result<RArray, Error> {
-        match &rb_self.storage {
+        match &*rb_self.storage.borrow() {
             Storage::Int(a) => rows_to_ruby(ruby, a),
             Storage::Float(a) => rows_to_ruby(ruby, a),
             Storage::Object(a) => rows_to_ruby(ruby, a),
@@ -137,6 +160,7 @@ impl Matrix {
 pub fn init(ruby: &Ruby) -> Result<(), Error> {
     let namespace = ruby.define_class("NDArray", ruby.class_object())?;
     let class = namespace.define_class("Matrix", ruby.class_object())?;
+    class.define_alloc_func::<Matrix>();
 
     class.define_singleton_method("[]", function!(Matrix::from_rows, -1))?;
     class.define_singleton_method("empty", function!(Matrix::empty, -1))?;
@@ -145,6 +169,7 @@ pub fn init(ruby: &Ruby) -> Result<(), Error> {
     class.define_alias("row_size", "row_count")?;
     class.define_method("column_count", method!(Matrix::column_count, 0))?;
     class.define_alias("column_size", "column_count")?;
+    class.define_private_method("initialize_copy", method!(Matrix::initialize_copy, 1))?;
     class.define_method("to_a", method!(Matrix::to_a, 0))?;
     Ok(())
 }

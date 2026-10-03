@@ -77,6 +77,30 @@ RSpec.describe NDArray::Matrix do
     end
   end
 
+  describe "#clone and #dup" do
+    [
+      [[1, 2], [3, 4]],
+      [[1.5, 2.5], [3.5, 4.5]],
+      [[Rational(1, 2), Complex(0, 1)], [1, 2.0]]
+    ].each do |rows|
+      it "copy a matrix with elements #{rows.flatten.map(&:class).uniq.join(", ")}" do
+        matrix = described_class[*rows]
+
+        [matrix.clone, matrix.dup].each do |copy|
+          expect(copy).to be_a(described_class)
+          expect(copy).not_to equal(matrix)
+          expect(copy.to_a).to eq(rows)
+        end
+      end
+    end
+
+    it "copies empty matrices keeping their shape" do
+      copy = described_class.empty(0, 3).clone
+
+      expect([copy.row_count, copy.column_count]).to eq([0, 3])
+    end
+  end
+
   describe "#row_count and #column_count" do
     let(:matrix) { described_class[[1, 2, 3], [4, 5, 6]] }
 
