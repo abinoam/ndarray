@@ -66,4 +66,4 @@ namespace :compat do
   end
 end
 
-task default: %i[compile spec standard]
+task default: %i[compile spec compat standard]
