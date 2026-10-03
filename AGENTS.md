@@ -4,7 +4,7 @@ This file provides guidance to AI coding agents when working with code in this r
 
 ## Project
 
-Ruby gem (`ndarray`) exposing Rust's `ndarray` crate to Ruby via Magnus + rb-sys. Alpha/proof of concept: only 2D `f64` arrays, focused on matrix multiplication (`dot`). Requires Ruby >= 4.0 and a Rust toolchain.
+Ruby gem (`ndarray`) exposing Rust's `ndarray` crate to Ruby via Magnus + rb-sys. Alpha/proof of concept: the original `NDArray` class handles only 2D `f64` arrays, focused on matrix multiplication (`dot`). `NDArray::Matrix` is a work-in-progress, Rust-backed implementation of the stdlib `Matrix`, aiming to pass 100% of the upstream ruby/matrix test suite. Requires Ruby >= 4.0 and a Rust toolchain.
 
 ## Commands
 
@@ -14,6 +14,9 @@ bundle exec rake               # default task: compile + spec + standard (what C
 bundle exec rake compile       # build the Rust extension into lib/ndarray/
 bundle exec rake spec          # run RSpec (does NOT recompile — run `compile` first after Rust changes)
 bundle exec rspec spec/ndarray_spec.rb:20   # run a single example by line
+bundle exec rake compat        # upstream ruby/matrix tests listed in test/compat/passing.txt (part of default)
+bundle exec rake compat:report # progress over the whole upstream suite; never fails
+bundle exec rake bench         # benchmark NDArray::Matrix vs stdlib Matrix (BENCH_SIZES/BENCH_TIME/BENCH_CASES)
 bundle exec rake standard      # Ruby lint (standardrb, target Ruby 4.0)
 bundle exec rake standard:fix  # autofix lint
 cargo clippy                   # Rust lint (workspace root Cargo.toml points at ext/)
@@ -33,12 +36,23 @@ bin/console                    # IRB with the gem loaded
 
 ## Architecture
 
-- **All behavior lives in Rust**: `ext/ruby_ndarray_rust_ext/src/lib.rs`. The `NDArray` Ruby class is defined there via `#[magnus::wrap(class = "NDArray")]` wrapping an `Array2<f64>`, and methods are registered in the `#[magnus::init]` function (`from_array` singleton, `dot`, `to_a`). Adding a Ruby method means implementing it on the Rust struct and registering it in `init`.
+- **All behavior lives in Rust**, under `ext/ruby_ndarray_rust_ext/src/`. `lib.rs` is only the `#[magnus::init]` entry point, calling each module's `init`:
+  - `ndarray2d.rs`: the `NDArray` class (`#[magnus::wrap]` around an `Array2<f64>`: `from_array`, `dot`, `to_a`).
+  - `matrix.rs`: `NDArray::Matrix`. Its `Storage` enum keeps elements in the narrowest exact representation: `Int(Array2<i64>)`, `Float(Array2<f64>)`, or `Object(Array2<Opaque<Value>>)` for everything else (marked for the GC). It sits in a `RefCell` because the class has an allocator and `#initialize_copy` (for `clone`/`dup`). Fast paths on `Int`/`Float` must keep Ruby semantics exactly (e.g. `1 == 1.0`, Integer overflow, floor division).
+
+  Adding a Ruby method means implementing it on the Rust struct and registering it in that module's `init`.
 - `lib/ndarray.rb` only requires the version and the compiled `.so` (`lib/ndarray/ruby_ndarray_rust_ext.so`), then reopens `NDArray` (currently just `NDArray::Error`). The `.so` is a build artifact produced by `rake compile`.
 - Build wiring: `Rakefile` uses `RbSys::ExtensionTask` named `ruby_ndarray_rust_ext` with `lib_dir = "lib/ndarray"`; `ext/ruby_ndarray_rust_ext/extconf.rb` calls `create_rust_makefile("ndarray/ruby_ndarray_rust_ext")`. These names must stay consistent with the crate name in `ext/ruby_ndarray_rust_ext/Cargo.toml` and the `require_relative` in `lib/ndarray.rb`.
 - Rust dependencies go in `ext/ruby_ndarray_rust_ext/Cargo.toml`; the root `Cargo.toml` is only a workspace pointer for tooling.
 - Errors raised from Rust use `magnus::Error::new(ruby.exception_arg_error(), ...)` (taking `ruby: &Ruby` as the first argument), surfacing as Ruby `ArgumentError` (e.g. `dot` with incompatible dimensions).
 - `sig/ndarray.rbs` holds RBS signatures (currently minimal).
+
+## Matrix compatibility
+
+- The upstream ruby/matrix repository is a git submodule at `test/upstream/matrix` (run `git submodule update --init`). Its tests run unmodified through `test/compat/run.rb`, where a shim (`test/compat/lib/matrix.rb`) points `::Matrix`/`::Vector` at NDArray's classes.
+- `test/compat/passing.txt` lists the upstream tests that must pass. When a change makes a test pass (see `rake compat:report`), add it there **in the same commit**.
+- `bench/cases.rb` holds the benchmark cases; add one when implementing a performance-relevant method.
+- The roadmap to 100% compatibility is kept locally (not versioned) in `notes/matrix-compat-roadmap.md`, if present.
 
 ## Workflow
 

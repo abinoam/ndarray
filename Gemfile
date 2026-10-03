@@ -13,6 +13,14 @@ gem "rspec", "~> 3.0"
 
 gem "standard", "~> 1.3"
 
+# Runs the upstream ruby/matrix test suite (test/upstream/matrix) against NDArray::Matrix
+gem "test-unit"
+gem "test-unit-ruby-core"
+
+# Benchmarks NDArray::Matrix against the stdlib Matrix (bench/)
+gem "benchmark-ips"
+gem "matrix"
+
 group :development do
   gem "debug"
 end

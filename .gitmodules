@@ -1,0 +1,3 @@
+[submodule "test/upstream/matrix"]
+	path = test/upstream/matrix
+	url = https://github.com/ruby/matrix

@@ -1,5 +1,9 @@
 ## [Unreleased]
 
+- Add `NDArray::Matrix`, a Rust-backed, work-in-progress implementation of the stdlib `Matrix`: `Matrix[]`, `.empty`, `#[]`, `#==`, `#row_count`/`#column_count`, `#to_a`, `#clone`/`#dup`.
+- Check `NDArray::Matrix` against the upstream ruby/matrix test suite (`rake compat`, `rake compat:report`).
+- Benchmark `NDArray::Matrix` against the stdlib `Matrix` (`rake bench`).
+
 ## [0.2.0] - 2026-10-03
 
 - **Breaking:** require Ruby >= 4.0 (support for Ruby < 4.0 dropped).

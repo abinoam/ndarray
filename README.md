@@ -52,6 +52,16 @@ puts result.to_a
 # Output: [[19.0, 22.0], [43.0, 50.0]]
 ```
 
+### Matrix compatibility (work in progress)
+
+`NDArray::Matrix` is a Rust-backed implementation of Ruby's stdlib [`Matrix`](https://github.com/ruby/matrix), being built step by step until it passes the whole upstream test suite. Elements keep their Ruby class: Integer and Float matrices are stored natively in Rust, and anything else (Rational, Complex, Bignum, mixed types) is kept as Ruby objects.
+
+```ruby
+m = NDArray::Matrix[[1, 2], [3, 4]]
+m[1, 0]                               # => 3
+m == NDArray::Matrix[[1.0, 2.0], [3.0, 4.0]] # => true
+```
+
 ## Performance
 
 NDArray leverages Rust's highly optimized `ndarray` crate to perform matrix calculations significantly faster than Ruby's `Matrix` library.
@@ -91,6 +101,14 @@ Run the test suite:
 
 ```bash
 bundle exec rake spec
+```
+
+Check `NDArray::Matrix` against the upstream ruby/matrix tests (a git submodule in `test/upstream/matrix`, initialized by `bin/setup`) and benchmark it against the stdlib `Matrix`:
+
+```bash
+bundle exec rake compat          # upstream tests known to pass (listed in test/compat/passing.txt)
+bundle exec rake compat:report   # progress over the whole upstream suite
+bundle exec rake bench           # NDArray::Matrix vs Matrix, as a markdown table
 ```
 
 Launch an interactive console to experiment:
