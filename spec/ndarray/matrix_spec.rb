@@ -77,6 +77,38 @@ RSpec.describe NDArray::Matrix do
     end
   end
 
+  describe "#[]" do
+    let(:matrix) { described_class[[1, 2, 3], [4, 5, 6]] }
+
+    it "returns the element at row i, column j" do
+      expect(matrix[0, 0]).to eq(1)
+      expect(matrix[1, 2]).to eq(6)
+    end
+
+    it "counts negative indices from the end" do
+      expect(matrix[-1, -1]).to eq(6)
+      expect(matrix[-2, 0]).to eq(1)
+    end
+
+    it "returns nil when out of range" do
+      expect(matrix[2, 0]).to be_nil
+      expect(matrix[0, 3]).to be_nil
+      expect(matrix[-3, 0]).to be_nil
+      expect(described_class.empty(2, 0)[0, 0]).to be_nil
+    end
+
+    it "returns elements with their original class" do
+      expect(described_class[[1.5]][0, 0]).to eql(1.5)
+      expect(described_class[[Rational(1, 2), 1]][0, 0]).to eql(Rational(1, 2))
+      expect(described_class[[Rational(1, 2), 1]][0, 1]).to eql(1)
+    end
+
+    it "is aliased as #element and #component" do
+      expect(matrix.element(1, 1)).to eq(5)
+      expect(matrix.component(1, 1)).to eq(5)
+    end
+  end
+
   describe "#clone and #dup" do
     [
       [[1, 2], [3, 4]],

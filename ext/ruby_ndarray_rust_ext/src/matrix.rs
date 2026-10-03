@@ -38,6 +38,14 @@ impl Storage {
         Self::Object(build_array(shape, objects))
     }
 
+    fn get(&self, ruby: &Ruby, index: (usize, usize)) -> Value {
+        match self {
+            Self::Int(a) => a[index].into_value_with(ruby),
+            Self::Float(a) => a[index].into_value_with(ruby),
+            Self::Object(a) => ruby.get_inner(a[index]),
+        }
+    }
+
     fn dim(&self) -> (usize, usize) {
         match self {
             Self::Int(a) => a.dim(),
@@ -49,6 +57,13 @@ impl Storage {
 
 fn build_array<T>(shape: (usize, usize), values: Vec<T>) -> Array2<T> {
     Array2::from_shape_vec(shape, values).expect("element count must match the shape")
+}
+
+// Resolves a Ruby index (negative counts from the end) into 0...len
+fn resolve_index(index: i64, len: usize) -> Option<usize> {
+    let len = i64::try_from(len).ok()?;
+    let index = if index < 0 { index + len } else { index };
+    (0..len).contains(&index).then_some(index as usize)
 }
 
 fn rows_to_ruby<T: IntoValue + Copy>(ruby: &Ruby, array: &Array2<T>) -> Result<RArray, Error> {
@@ -133,6 +148,14 @@ impl Matrix {
         Ok(Self::new(Storage::Int(build_array(shape, Vec::new()))))
     }
 
+    // matrix[i, j]: the element at row i, column j, or nil when out of range
+    fn element(ruby: &Ruby, rb_self: &Self, i: i64, j: i64) -> Option<Value> {
+        let storage = rb_self.storage.borrow();
+        let (row_count, column_count) = storage.dim();
+        let index = (resolve_index(i, row_count)?, resolve_index(j, column_count)?);
+        Some(storage.get(ruby, index))
+    }
+
     fn row_count(&self) -> usize {
         self.storage.borrow().dim().0
     }
@@ -165,6 +188,9 @@ pub fn init(ruby: &Ruby) -> Result<(), Error> {
     class.define_singleton_method("[]", function!(Matrix::from_rows, -1))?;
     class.define_singleton_method("empty", function!(Matrix::empty, -1))?;
 
+    class.define_method("[]", method!(Matrix::element, 2))?;
+    class.define_alias("element", "[]")?;
+    class.define_alias("component", "[]")?;
     class.define_method("row_count", method!(Matrix::row_count, 0))?;
     class.define_alias("row_size", "row_count")?;
     class.define_method("column_count", method!(Matrix::column_count, 0))?;

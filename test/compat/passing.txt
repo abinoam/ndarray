@@ -4,3 +4,4 @@
 # lists the ones that pass but are not listed yet.
 # Format: TestClass#test_method, one per line.
 TestMatrix#test_identity
+TestMatrix#test_matrix
