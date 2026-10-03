@@ -26,7 +26,7 @@ bin/console                    # IRB with the gem loaded
 - `lib/ndarray.rb` only requires the version and the compiled `.so` (`lib/ndarray/ruby_ndarray_rust_ext.so`), then reopens `NDArray` (currently just `NDArray::Error`). The `.so` is a build artifact produced by `rake compile`.
 - Build wiring: `Rakefile` uses `RbSys::ExtensionTask` named `ruby_ndarray_rust_ext` with `lib_dir = "lib/ndarray"`; `ext/ruby_ndarray_rust_ext/extconf.rb` calls `create_rust_makefile("ndarray/ruby_ndarray_rust_ext")`. These names must stay consistent with the crate name in `ext/ruby_ndarray_rust_ext/Cargo.toml` and the `require_relative` in `lib/ndarray.rb`.
 - Rust dependencies go in `ext/ruby_ndarray_rust_ext/Cargo.toml`; the root `Cargo.toml` is only a workspace pointer for tooling.
-- Errors raised from Rust use `magnus::Error::new(exception::arg_error(), ...)`, surfacing as Ruby `ArgumentError` (e.g. `dot` with incompatible dimensions).
+- Errors raised from Rust use `magnus::Error::new(ruby.exception_arg_error(), ...)` (taking `ruby: &Ruby` as the first argument), surfacing as Ruby `ArgumentError` (e.g. `dot` with incompatible dimensions).
 - `sig/ndarray.rbs` holds RBS signatures (currently minimal).
 
 ## Workflow

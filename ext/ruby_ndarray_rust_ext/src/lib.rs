@@ -1,4 +1,4 @@
-use magnus::{exception, function, method, prelude::*, Error, Ruby};
+use magnus::{function, method, prelude::*, Error, Ruby};
 use ndarray::Array2;
 
 #[magnus::wrap(class = "NDArray")]
@@ -7,7 +7,7 @@ struct NDArray {
 }
 
 impl NDArray {
-    fn from_array(array: Vec<Vec<f64>>) -> Result<Self, Error> {
+    fn from_array(ruby: &Ruby, array: Vec<Vec<f64>>) -> Result<Self, Error> {
         let rows = array.len();
         let cols = array.first().map_or(0, |row| row.len());
 
@@ -16,16 +16,16 @@ impl NDArray {
 
         // Create a 2D ndarray
         let ndarray = Array2::from_shape_vec((rows, cols), flattened)
-            .map_err(|e| Error::new(exception::arg_error(), e.to_string()))?;
+            .map_err(|e| Error::new(ruby.exception_arg_error(), e.to_string()))?;
 
         Ok(Self { data: ndarray })
     }
 
-    fn dot(_ruby: &Ruby, rb_self: &Self, other: &NDArray) -> Result<Self, Error> {
+    fn dot(ruby: &Ruby, rb_self: &Self, other: &NDArray) -> Result<Self, Error> {
         // Check if the dimensions are compatible for the dot product
         if rb_self.data.ncols() != other.data.nrows() {
             return Err(Error::new(
-                exception::arg_error(),
+                ruby.exception_arg_error(),
                 "Incompatible dimensions for dot product: number of columns in the first matrix must equal the number of rows in the second matrix",
             ));
         }
