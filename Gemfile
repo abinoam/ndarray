@@ -17,6 +17,10 @@ gem "standard", "~> 1.3"
 gem "test-unit"
 gem "test-unit-ruby-core"
 
+# Benchmarks NDArray::Matrix against the stdlib Matrix (bench/)
+gem "benchmark-ips"
+gem "matrix"
+
 group :development do
   gem "debug"
 end

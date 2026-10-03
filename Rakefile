@@ -66,4 +66,9 @@ namespace :compat do
   end
 end
 
+desc "Benchmark NDArray::Matrix against the stdlib Matrix (see bench/compare.rb)"
+task bench: :compile do
+  ruby "bench/compare.rb"
+end
+
 task default: %i[compile spec compat standard]
