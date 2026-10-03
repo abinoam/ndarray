@@ -74,7 +74,7 @@ NDArray aims to explore how modern Rust libraries and Ruby bindings can achieve 
 ### Prerequisites
 
 - Rust (version 1.85+)
-- Ruby (version 3.1.0+)
+- Ruby (version 4.0.0+)
 - Bundler
 
 ### Setting Up
