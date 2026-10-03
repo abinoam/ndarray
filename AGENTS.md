@@ -4,7 +4,7 @@ This file provides guidance to AI coding agents when working with code in this r
 
 ## Project
 
-Ruby gem (`ndarray`) exposing Rust's `ndarray` crate to Ruby via Magnus + rb-sys. Alpha/proof of concept: only 2D `f64` arrays, focused on matrix multiplication (`dot`). Requires Ruby >= 3.1 and a Rust toolchain.
+Ruby gem (`ndarray`) exposing Rust's `ndarray` crate to Ruby via Magnus + rb-sys. Alpha/proof of concept: only 2D `f64` arrays, focused on matrix multiplication (`dot`). Requires Ruby >= 4.0 and a Rust toolchain.
 
 ## Commands
 
@@ -14,7 +14,7 @@ bundle exec rake               # default task: compile + spec + standard (what C
 bundle exec rake compile       # build the Rust extension into lib/ndarray/
 bundle exec rake spec          # run RSpec (does NOT recompile — run `compile` first after Rust changes)
 bundle exec rspec spec/ndarray_spec.rb:20   # run a single example by line
-bundle exec rake standard      # Ruby lint (standardrb, target Ruby 3.1)
+bundle exec rake standard      # Ruby lint (standardrb, target Ruby 4.0)
 bundle exec rake standard:fix  # autofix lint
 cargo clippy                   # Rust lint (workspace root Cargo.toml points at ext/)
 bin/console                    # IRB with the gem loaded
