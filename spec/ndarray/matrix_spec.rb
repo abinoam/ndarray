@@ -109,6 +109,40 @@ RSpec.describe NDArray::Matrix do
     end
   end
 
+  describe "#==" do
+    let(:matrix) { described_class[[1, 2], [3, 4]] }
+
+    it "is true for matrices with the same elements" do
+      expect(matrix).to eq(described_class[[1, 2], [3, 4]])
+    end
+
+    it "is false when an element differs" do
+      expect(matrix).not_to eq(described_class[[1, 2], [3, 5]])
+    end
+
+    it "compares elements numerically across storages" do
+      expect(matrix).to eq(described_class[[1.0, 2.0], [3.0, 4.0]])
+      expect(described_class[[1.0, 2.0], [3.0, 4.0]]).to eq(matrix)
+      expect(described_class[[Rational(1, 2)]]).to eq(described_class[[0.5]])
+    end
+
+    it "compares large integers and floats exactly" do
+      expect(described_class[[2**53]]).to eq(described_class[[2.0**53]])
+      expect(described_class[[2**53 + 1]]).not_to eq(described_class[[2.0**53]])
+    end
+
+    it "is false for different shapes, including empty ones" do
+      expect(described_class[[1, 2]]).not_to eq(described_class[[1], [2]])
+      expect(described_class.empty(0, 3)).not_to eq(described_class.empty(0, 2))
+      expect(described_class.empty(2, 0)).to eq(described_class[[], []])
+    end
+
+    it "is false for objects that are not matrices" do
+      expect(matrix).not_to eq([[1, 2], [3, 4]])
+      expect(matrix).not_to eq(nil)
+    end
+  end
+
   describe "#clone and #dup" do
     [
       [[1, 2], [3, 4]],

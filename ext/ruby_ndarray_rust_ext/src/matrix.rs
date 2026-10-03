@@ -4,7 +4,7 @@ use magnus::{
     DataTypeFunctions, Error, Float, Integer, IntoValue, RArray, Ruby, TypedData, Value, function,
     gc, method, prelude::*, scan_args::scan_args, value::Opaque,
 };
-use ndarray::Array2;
+use ndarray::{Array2, Zip, indices};
 
 // Elements are kept in the narrowest Rust type able to represent all of them
 // exactly, so Ruby semantics (Integer vs Float) are preserved. Anything else
@@ -46,6 +46,24 @@ impl Storage {
         }
     }
 
+    // Element-wise `==` with Ruby semantics; both shapes must match.
+    fn elements_eq(&self, ruby: &Ruby, other: &Self) -> Result<bool, Error> {
+        match (self, other) {
+            (Self::Int(a), Self::Int(b)) => Ok(a == b),
+            (Self::Float(a), Self::Float(b)) => Ok(a == b),
+            (Self::Int(a), Self::Float(b)) => Ok(Zip::from(a).and(b).all(|&i, &f| int_eq_float(i, f))),
+            (Self::Float(a), Self::Int(b)) => Ok(Zip::from(a).and(b).all(|&f, &i| int_eq_float(i, f))),
+            _ => {
+                for index in indices(self.dim()) {
+                    if !self.get(ruby, index).equal(other.get(ruby, index))? {
+                        return Ok(false);
+                    }
+                }
+                Ok(true)
+            }
+        }
+    }
+
     fn dim(&self) -> (usize, usize) {
         match self {
             Self::Int(a) => a.dim(),
@@ -57,6 +75,12 @@ impl Storage {
 
 fn build_array<T>(shape: (usize, usize), values: Vec<T>) -> Array2<T> {
     Array2::from_shape_vec(shape, values).expect("element count must match the shape")
+}
+
+// Exact Integer == Float comparison, as Ruby does (1 == 1.0, but 2**53 + 1 != 2.0**53)
+fn int_eq_float(i: i64, f: f64) -> bool {
+    let i64_range = (i64::MIN as f64)..(-(i64::MIN as f64));
+    f.fract() == 0.0 && i64_range.contains(&f) && f as i64 == i
 }
 
 // Resolves a Ruby index (negative counts from the end) into 0...len
@@ -156,6 +180,18 @@ impl Matrix {
         Some(storage.get(ruby, index))
     }
 
+    // Equal when other is a Matrix of the same shape whose elements are all ==
+    fn eq(ruby: &Ruby, rb_self: &Self, other: Value) -> Result<bool, Error> {
+        let Ok(other) = <&Self>::try_convert(other) else {
+            return Ok(false);
+        };
+        let (storage, other_storage) = (rb_self.storage.borrow(), other.storage.borrow());
+        if storage.dim() != other_storage.dim() {
+            return Ok(false);
+        }
+        storage.elements_eq(ruby, &other_storage)
+    }
+
     fn row_count(&self) -> usize {
         self.storage.borrow().dim().0
     }
@@ -188,6 +224,7 @@ pub fn init(ruby: &Ruby) -> Result<(), Error> {
     class.define_singleton_method("[]", function!(Matrix::from_rows, -1))?;
     class.define_singleton_method("empty", function!(Matrix::empty, -1))?;
 
+    class.define_method("==", method!(Matrix::eq, 1))?;
     class.define_method("[]", method!(Matrix::element, 2))?;
     class.define_alias("element", "[]")?;
     class.define_alias("component", "[]")?;

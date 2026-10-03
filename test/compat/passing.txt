@@ -5,3 +5,5 @@
 # Format: TestClass#test_method, one per line.
 TestMatrix#test_identity
 TestMatrix#test_matrix
+TestMatrix#test_equality
+TestMatrix#test_new_matrix
