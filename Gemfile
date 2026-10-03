@@ -12,3 +12,7 @@ gem "rake-compiler"
 gem "rspec", "~> 3.0"
 
 gem "standard", "~> 1.3"
+
+group :development do
+  gem "debug"
+end
