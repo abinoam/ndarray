@@ -16,6 +16,26 @@ RSpec.describe NDArray::Matrix do
       expect(matrix.to_a.flatten).to all(be_a(Float))
     end
 
+    it "keeps other numeric elements as Ruby objects" do
+      rows = [[Rational(1, 2), Complex(1, 2)], [2**64, 1.5]]
+
+      expect(described_class[*rows].to_a).to eq(rows)
+    end
+
+    it "preserves each element's type in mixed matrices" do
+      expect(described_class[[1, 2.0]].to_a.flatten.map(&:class)).to eq([Integer, Float])
+    end
+
+    it "keeps object elements alive across garbage collection" do
+      build_rows = -> { Array.new(10) { |i| Array.new(10) { |j| "#{i},#{j}" } } }
+      matrix = described_class[*build_rows.call]
+
+      GC.start
+      GC.compact if GC.respond_to?(:compact)
+
+      expect(matrix.to_a).to eq(build_rows.call)
+    end
+
     it "accepts objects convertible with #to_ary" do
       row = Object.new
       def row.to_ary = [1, 2, 3]

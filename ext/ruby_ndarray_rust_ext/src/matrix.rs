@@ -1,24 +1,26 @@
 use magnus::{
     DataTypeFunctions, Error, Float, Integer, IntoValue, RArray, Ruby, TypedData, Value, function,
-    method, prelude::*,
+    gc, method, prelude::*, value::Opaque,
 };
 use ndarray::Array2;
 
 // Elements are kept in the narrowest Rust type able to represent all of them
-// exactly, so Ruby semantics (Integer vs Float) are preserved.
+// exactly, so Ruby semantics (Integer vs Float) are preserved. Anything else
+// (Rational, Complex, Bignum, mixed types...) falls back to Ruby objects.
 enum Storage {
     Int(Array2<i64>),
     Float(Array2<f64>),
+    Object(Array2<Opaque<Value>>),
 }
 
 impl Storage {
-    fn from_values(ruby: &Ruby, shape: (usize, usize), values: Vec<Value>) -> Result<Self, Error> {
+    fn from_values(shape: (usize, usize), values: Vec<Value>) -> Self {
         let ints: Option<Vec<i64>> = values
             .iter()
             .map(|&v| Integer::from_value(v).and_then(|i| i.to_i64().ok()))
             .collect();
         if let Some(ints) = ints {
-            return Ok(Self::Int(build_array(shape, ints)));
+            return Self::Int(build_array(shape, ints));
         }
 
         let floats: Option<Vec<f64>> = values
@@ -26,19 +28,18 @@ impl Storage {
             .map(|&v| Float::from_value(v).map(|f| f.to_f64()))
             .collect();
         if let Some(floats) = floats {
-            return Ok(Self::Float(build_array(shape, floats)));
+            return Self::Float(build_array(shape, floats));
         }
 
-        Err(Error::new(
-            ruby.exception_type_error(),
-            "NDArray::Matrix only supports Integer (fitting in 64 bits) or Float elements",
-        ))
+        let objects = values.into_iter().map(Opaque::from).collect();
+        Self::Object(build_array(shape, objects))
     }
 
     fn dim(&self) -> (usize, usize) {
         match self {
             Self::Int(a) => a.dim(),
             Self::Float(a) => a.dim(),
+            Self::Object(a) => a.dim(),
         }
     }
 }
@@ -56,12 +57,19 @@ fn rows_to_ruby<T: IntoValue + Copy>(ruby: &Ruby, array: &Array2<T>) -> Result<R
 }
 
 #[derive(TypedData)]
-#[magnus(class = "NDArray::Matrix", free_immediately)]
+#[magnus(class = "NDArray::Matrix", free_immediately, mark)]
 pub struct Matrix {
     storage: Storage,
 }
 
-impl DataTypeFunctions for Matrix {}
+impl DataTypeFunctions for Matrix {
+    // Keep the Ruby objects held by the Object storage alive.
+    fn mark(&self, marker: &gc::Marker) {
+        if let Storage::Object(a) = &self.storage {
+            a.iter().for_each(|&value| marker.mark(value));
+        }
+    }
+}
 
 impl Matrix {
     // Matrix[*rows]
@@ -85,7 +93,7 @@ impl Matrix {
             values.extend(*row);
         }
 
-        let storage = Storage::from_values(ruby, (row_count, column_count), values)?;
+        let storage = Storage::from_values((row_count, column_count), values);
         Ok(Self { storage })
     }
 
@@ -101,6 +109,7 @@ impl Matrix {
         match &rb_self.storage {
             Storage::Int(a) => rows_to_ruby(ruby, a),
             Storage::Float(a) => rows_to_ruby(ruby, a),
+            Storage::Object(a) => rows_to_ruby(ruby, a),
         }
     }
 }
