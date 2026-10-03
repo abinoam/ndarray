@@ -1,9 +1,11 @@
 use magnus::{Error, Ruby};
 
+mod matrix;
 mod ndarray2d;
 
 // Initializing Rust extension for Ruby
 #[magnus::init]
 fn init(ruby: &Ruby) -> Result<(), Error> {
-    ndarray2d::init(ruby)
+    ndarray2d::init(ruby)?;
+    matrix::init(ruby)
 }
